@@ -23,10 +23,13 @@ export class PostListComponent implements OnInit, OnDestroy {
   private postsSub: Subscription = new Subscription;
 
   //public keyword will automatically create a new property
+  // i.e. dun need this.postService = postService etc..
   constructor(public postService: PostsService){}
 
+  // angular will automatically execute when it creates a component
   ngOnInit(){
-    this.posts = this.postService.getPosts();
+    //because of public declaration above, can just invoke postService this way
+    this.postService.getPosts();
 
     /*
     * subscribe takes 3 arguments
@@ -48,6 +51,10 @@ export class PostListComponent implements OnInit, OnDestroy {
     * ngOnDestroy below will be called whenever this component is about to be destroyed
     * unscribe below will remove subscription and prevent memory leak
     */
+
+    //subscribes to the listener created in posts service
+
+    //postsSub is a subscription type created above, to ubsubscribe in onDestroy to prevent memory leak
     this.postsSub = this.postService.getPostUpdateListener()
       .subscribe((posts: Post[]) => {
         this.posts = posts;
