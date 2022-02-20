@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Post } from './post.model';
 //rxjs package: objects that help us pass data around
 import { Subject } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 
 /*
@@ -42,11 +43,21 @@ export class PostsService {
     * get() expects a path to our backend server
     * .subscribe to listen
     */
-    this.http.get<{message: string, posts: Post[]}>('http://localhost:3000/api/posts')
-      .subscribe((postData) => {
+    this.http.get<{message: string, posts: any}>("http://localhost:3000/api/posts")
+      //to transform _id into id
+      .pipe(map((postData) => {
+        return postData.posts.map(post => {
+          return {
+            title: post.title,
+            content: post.content,
+            id: post._id
+          };
+        })
+      }))
+      .subscribe(transformedPosts => {
         //postsData is an element of the object we specified in the get method ^
         //this get method extracts and formats the data from json to js
-        this.posts = postData.posts;
+        this.posts = transformedPosts;
         this.postsUpdated.next([...this.posts]);
       });
   }
@@ -58,11 +69,14 @@ export class PostsService {
 
   addPost(title: string, content: string) {
     const post: Post = {id: null as any, title: title, content: content};
+    //message & postId is expected to be returned after invoking api api/posts
     this.http
-      .post<{ message: string }>("http://localhost:3000/api/posts", post)
+      .post<{ message: string, postId: string }>("http://localhost:3000/api/posts", post)
       //responseData is the first argument of the subscribe method i.e. only called for success responses
       .subscribe(responseData => {
-        console.log(responseData.message);
+        //update the local post with an id sent back from api
+        const id = responseData.postId;
+        post.id = id;
 
         //push the new post to the local posts here if we really have a successful respnse from server side
         this.posts.push(post);
@@ -73,5 +87,15 @@ export class PostsService {
         this.postsUpdated.next([...this.posts]);
       });
 
+  }
+
+  deletePost(postId: string){
+    this.http.delete("http://localhost:3000/api/posts/" + postId)
+      .subscribe(() => {
+        const updatedPosts = this.posts.filter(post => post.id !== postId);
+        this.posts = updatedPosts;
+        this.postsUpdated.next([...this.posts]);
+        console.log('Post ID:'+ postId + ' deleted.')
+      })
   }
 }
