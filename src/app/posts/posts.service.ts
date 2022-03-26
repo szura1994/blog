@@ -4,6 +4,7 @@ import { Post } from './post.model';
 import { Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 
 /*
 * Service is a class which you add to your angular application
@@ -20,7 +21,7 @@ export class PostsService {
   private posts: Post[] = [];
   private postsUpdated = new Subject<Post[]>();
 
-  constructor(private http: HttpClient){}
+  constructor(private http: HttpClient, private router: Router){}
 
   // method which allows retieval of posts
   getPosts(){
@@ -67,6 +68,17 @@ export class PostsService {
     return this.postsUpdated.asObservable();
   }
 
+  getPost(id: string){
+    /*
+    * fetch object from the post array in the posts service
+    * with the help of the find method
+    * there a function will be executed on every post in the array
+    * and if it returns true, this is the post object it will return
+    */
+    // return {...this.posts.find(p => p.id === id)}
+    return this.http.get<{_id: string, title: string, content: string}>("http://localhost:3000/api/posts/"+ id);
+  }
+
   addPost(title: string, content: string) {
     const post: Post = {id: null as any, title: title, content: content};
     //message & postId is expected to be returned after invoking api api/posts
@@ -85,12 +97,29 @@ export class PostsService {
         //take the subject (postsUpdated) & next pushes new value, it emits a new value
         //and this value is a copy of the posts after its updated
         this.postsUpdated.next([...this.posts]);
+        this.router.navigate(["/"]);
       });
 
   }
 
+  updatePost(id: string, title: string, content: string){
+    const post: Post = { id:id, title: title, content: content};
+    this.http
+      .put("http://localhost:3000/api/posts/" + id, post)
+      .subscribe(response => {
+        //locally update post after you got a success response
+        const updatedPosts = [...this.posts]
+        const oldPostIndex = updatedPosts.findIndex(p => p.id === post.id);
+        updatedPosts[oldPostIndex] = post;
+        this.posts = updatedPosts;
+        this.postsUpdated.next([...this.posts]);
+        this.router.navigate(["/"]);
+      });
+  }
+
   deletePost(postId: string){
-    this.http.delete("http://localhost:3000/api/posts/" + postId)
+    this.http
+      .delete("http://localhost:3000/api/posts/" + postId)
       .subscribe(() => {
         const updatedPosts = this.posts.filter(post => post.id !== postId);
         this.posts = updatedPosts;

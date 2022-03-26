@@ -6,3 +6,11 @@ textarea{
 .top-space-20{
   margin-top: 15px;
 }
+
+mat-spinner {
+  margin: auto;
+}
+
+input[type="file"]{
+  visibility: hidden;
+}

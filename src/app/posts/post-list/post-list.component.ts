@@ -20,6 +20,7 @@ export class PostListComponent implements OnInit, OnDestroy {
   // ];
 
   posts: Post[] = [];
+  isLoading = false;
   private postsSub: Subscription = new Subscription;
 
   //public keyword will automatically create a new property
@@ -28,6 +29,7 @@ export class PostListComponent implements OnInit, OnDestroy {
 
   // angular will automatically execute when it creates a component
   ngOnInit(){
+    this.isLoading = true;
     //because of public declaration above, can just invoke postService this way
     this.postService.getPosts();
 
@@ -57,6 +59,7 @@ export class PostListComponent implements OnInit, OnDestroy {
     //postsSub is a subscription type created above, to ubsubscribe in onDestroy to prevent memory leak
     this.postsSub = this.postService.getPostUpdateListener()
       .subscribe((posts: Post[]) => {
+        this.isLoading = false;
         this.posts = posts;
       });
   }
