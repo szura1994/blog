@@ -2,6 +2,7 @@
 * which is still a nodejs server side app
 * just taking advantage of express features
 */
+const path = require("path");
 const express = require("express");
 const bodyParser = require("body-parser");
 const { ArgumentOutOfRangeError } = require("rxjs");
@@ -26,6 +27,15 @@ mongoose.connect("mongodb+srv://szura1994:ybAZ5EK9iLdTXbzJ@cluster0.tvrbo.mongod
 app.use(bodyParser.json());
 //bodyparser is capable to parsing different kinds of bodies (unused)
 app.use(bodyParser.urlencoded({ extended: false }));
+
+/*make images folder statically accessible
+* any request targeting that folder should simply be forwarded
+* the static middleware added like this means any requests targeting /images
+* will be allowed to continue and fetch
+* path is imported upstairs [allows us to construct paths in a way that's safe to run on any OS]
+* requests going to images are actually forwarded to back-end images
+*/
+app.use("/images", express.static(path.join("backend/images")));
 
 //for CORS
 app.use((req, res, next) => {

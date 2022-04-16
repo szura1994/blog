@@ -3,6 +3,7 @@ import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { ActivatedRoute, ParamMap } from "@angular/router";
 import { Post } from "../post.model";
 import { PostsService } from "../posts.service";
+import { mimeType } from "./mime-type.validator";
 
 @Component({
   selector: 'app-post-create',
@@ -14,6 +15,7 @@ export class PostCreateComponent implements OnInit{
   enteredContent = "";
   isLoading = false;
   form: FormGroup;
+  imagePreview: string;
   private mode = 'create';
   private postId: string;
   post: Post;
@@ -31,6 +33,10 @@ export class PostCreateComponent implements OnInit{
       }),
       content: new FormControl(null, {
         validators: [Validators.required]
+      }),
+      image: new FormControl(null, {
+        validators: [Validators.required],
+        asyncValidators: [mimeType]
       })
     });
     //retrieve parama map to see if postId exists in path... if it does.. its for edit i.e. edit mode
@@ -45,11 +51,13 @@ export class PostCreateComponent implements OnInit{
           this.post = {
             id: postData._id,
             title: postData.title,
-            content: postData.content
+            content: postData.content,
+            imagePath: postData.imagePath
           };
           this.form.setValue({
             title: this.post.title,
-            content: this.post.content
+            content: this.post.content,
+            image: this.post.imagePath
           });
         });
         console.log('Edit Post: '+this.postId)
@@ -58,6 +66,24 @@ export class PostCreateComponent implements OnInit{
         this.postId = null;
       }
     });
+  }
+
+  onImagePicked(event: Event){
+    const file = (event.target as HTMLInputElement).files[0];
+    this.form.patchValue({image: file});
+    this.form.get('image').updateValueAndValidity();
+
+    /*
+    * 1. Create reader
+    * 2. Defining something which should happen when its done reading a file
+    * 3. Then instruct it to load that file
+    */
+    const reader = new FileReader();
+
+    reader.onload = () => { //function that gets executed when its done loading a certain resource
+      this.imagePreview = reader.result as string;
+    }
+    reader.readAsDataURL(file);
   }
 
   onSavePost() {
@@ -74,9 +100,9 @@ export class PostCreateComponent implements OnInit{
       * thus easier way of passing data around: service
       */
       // this.postCreated.emit(post);
-      this.postsService.addPost(this.form.value.title, this.form.value.content);
+      this.postsService.addPost(this.form.value.title, this.form.value.content, this.form.value.image);
     } else {
-      this.postsService.updatePost(this.postId, this.form.value.title, this.form.value.content);
+      this.postsService.updatePost(this.postId, this.form.value.title, this.form.value.content, this.form.value.image);
     }
 
     this.form.reset();

@@ -5,7 +5,8 @@ const mongoose = require('mongoose');
 const postSchema = mongoose.Schema({
   //required is a type of schema type, refer to mongoose docs for more
   title: { type: String, required: true },
-  content: { type: String, required: true }
+  content: { type: String, required: true },
+  imagePath: { type: String, required: true }
 });
 
 module.exports = mongoose.model('Post', postSchema);
