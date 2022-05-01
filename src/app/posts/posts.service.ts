@@ -19,12 +19,12 @@ import { Router } from '@angular/router';
 @Injectable({providedIn: 'root'})
 export class PostsService {
   private posts: Post[] = [];
-  private postsUpdated = new Subject<Post[]>();
+  private postsUpdated = new Subject<{posts: Post[], postCount: number}>();
 
   constructor(private http: HttpClient, private router: Router){}
 
   // method which allows retieval of posts
-  getPosts(){
+  getPosts(postsPerPage: number, currentPage: number){
     //this 3 dots is like creating a new array and not directly the original posts
     /* reason is cause of reference type vs primitive
     * essentially a reference tpye is a type where if you copy it you dont really copy it
@@ -44,23 +44,29 @@ export class PostsService {
     * get() expects a path to our backend server
     * .subscribe to listen
     */
-    this.http.get<{message: string, posts: any}>("http://localhost:3000/api/posts")
+    const queryParams = `?pagesize=${postsPerPage}&page=${currentPage}`;
+
+    this.http
+      .get<{message: string, posts: any, maxPosts: number}>("http://localhost:3000/api/posts" + queryParams)
       //to transform _id into id
       .pipe(map((postData) => {
-        return postData.posts.map(post => {
+        return { posts: postData.posts.map(post => {
           return {
             title: post.title,
             content: post.content,
             id: post._id,
             imagePath: post.imagePath
           };
-        });
+        }), maxPosts: postData.maxPosts};
       }))
-      .subscribe(transformedPosts => {
+      .subscribe(transformedPostData => {
         //postsData is an element of the object we specified in the get method ^
         //this get method extracts and formats the data from json to js
-        this.posts = transformedPosts;
-        this.postsUpdated.next([...this.posts]);
+        this.posts = transformedPostData.posts;
+        this.postsUpdated.next({
+          posts: [...this.posts],
+          postCount: transformedPostData.maxPosts
+        });
       });
   }
 
@@ -100,23 +106,24 @@ export class PostsService {
         )
       //responseData is the first argument of the subscribe method i.e. only called for success responses
       .subscribe(responseData => {
-        const post: Post = {
-          id: responseData.post.id,
-          title: title,
-          content: content,
-          imagePath: responseData.post.imagePath
-        };
-        //update the local post with an id sent back from api
-        // const id = responseData.postId;
-        // post.id = id;
+        // not required anymore because we go to a page where we fetch the latest version anyways
+        // const post: Post = {
+        //   id: responseData.post.id,
+        //   title: title,
+        //   content: content,
+        //   imagePath: responseData.post.imagePath
+        // };
+        // //update the local post with an id sent back from api
+        // // const id = responseData.postId;
+        // // post.id = id;
 
-        //push the new post to the local posts here if we really have a successful respnse from server side
-        this.posts.push(post);
+        // //push the new post to the local posts here if we really have a successful respnse from server side
+        // this.posts.push(post);
 
-        //copy of my posts after i updated in previous ^ step
-        //take the subject (postsUpdated) & next pushes new value, it emits a new value
-        //and this value is a copy of the posts after its updated
-        this.postsUpdated.next([...this.posts]);
+        // //copy of my posts after i updated in previous ^ step
+        // //take the subject (postsUpdated) & next pushes new value, it emits a new value
+        // //and this value is a copy of the posts after its updated
+        // this.postsUpdated.next([...this.posts]);
         this.router.navigate(["/"]);
       });
 
@@ -143,30 +150,31 @@ export class PostsService {
     this.http
       .put("http://localhost:3000/api/posts/" + id, postData)
       .subscribe(response => {
+        // not required anymore because we go to a page where we fetch the latest version anyways
         //locally update post after you got a success response
-        const updatedPosts = [...this.posts]
-        const oldPostIndex = updatedPosts.findIndex(p => p.id === id);
-        const post: Post = {
-          id: id,
-          title: title,
-          content: content,
-          imagePath: ""
-        };
-        updatedPosts[oldPostIndex] = post;
-        this.posts = updatedPosts;
-        this.postsUpdated.next([...this.posts]);
+        // const updatedPosts = [...this.posts]
+        // const oldPostIndex = updatedPosts.findIndex(p => p.id === id);
+        // const post: Post = {
+        //   id: id,
+        //   title: title,
+        //   content: content,
+        //   imagePath: ""
+        // };
+        // updatedPosts[oldPostIndex] = post;
+        // this.posts = updatedPosts;
+        // this.postsUpdated.next([...this.posts]);
         this.router.navigate(["/"]);
       });
   }
 
   deletePost(postId: string){
-    this.http
-      .delete("http://localhost:3000/api/posts/" + postId)
-      .subscribe(() => {
-        const updatedPosts = this.posts.filter(post => post.id !== postId);
-        this.posts = updatedPosts;
-        this.postsUpdated.next([...this.posts]);
-        console.log('Post ID:'+ postId + ' deleted.')
-      })
+    return this.http
+      .delete("http://localhost:3000/api/posts/" + postId);
+      // .subscribe(() => {
+      //   const updatedPosts = this.posts.filter(post => post.id !== postId);
+      //   this.posts = updatedPosts;
+      //   this.postsUpdated.next([...this.posts]);
+      //   console.log('Post ID:'+ postId + ' deleted.')
+      // })
   }
 }

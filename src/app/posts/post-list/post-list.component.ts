@@ -2,6 +2,7 @@ import { Component, Input, OnDestroy, OnInit } from "@angular/core";
 
 //rxjs is all about obserables, essentially about objects that helps us pass data around
 import { Subscription } from "rxjs";
+import { PageEvent } from "@angular/material/paginator";
 
 import { Post } from '../post.model'
 import { PostsService } from "../posts.service";
@@ -21,6 +22,10 @@ export class PostListComponent implements OnInit, OnDestroy {
 
   posts: Post[] = [];
   isLoading = false;
+  totalPosts = 0;
+  postsPerPage = 2;
+  currentPage = 1;
+  pageSizeOptions = [1,2,5,10];
   private postsSub: Subscription = new Subscription;
 
   //public keyword will automatically create a new property
@@ -31,7 +36,7 @@ export class PostListComponent implements OnInit, OnDestroy {
   ngOnInit(){
     this.isLoading = true;
     //because of public declaration above, can just invoke postService this way
-    this.postService.getPosts();
+    this.postService.getPosts(this.postsPerPage, this.currentPage);
 
     /*
     * subscribe takes 3 arguments
@@ -58,14 +63,27 @@ export class PostListComponent implements OnInit, OnDestroy {
 
     //postsSub is a subscription type created above, to ubsubscribe in onDestroy to prevent memory leak
     this.postsSub = this.postService.getPostUpdateListener()
-      .subscribe((posts: Post[]) => {
+      .subscribe((postData: {posts: Post[], postCount: number}) => {
         this.isLoading = false;
-        this.posts = posts;
+        this.totalPosts = postData.postCount;
+        this.posts = postData.posts;
       });
   }
 
+  onChangePage(pageData: PageEvent) {
+    //to load spinner, will be set to false automatically once we get updated posts in ngoninit
+    this.isLoading = true;
+
+    this.currentPage = pageData.pageIndex + 1;
+    this.postsPerPage = pageData.pageSize;
+    this.postService.getPosts(this.postsPerPage, this.currentPage);
+  }
+
   onDelete(postId: string) {
-    this.postService.deletePost(postId);
+    this.isLoading = true;
+    this.postService.deletePost(postId).subscribe(() => {
+      this.postService.getPosts(this.postsPerPage, this.currentPage);
+    });
   }
 
   ngOnDestroy(){
