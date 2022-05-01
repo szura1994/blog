@@ -99,17 +99,40 @@ router.put(
 * registered path to fetch posts if we send a get request to /posts
 */
 router.get("",(req, res, next) => {
-
+  /*
+  * query parameters are optional parameters, pieces of information you can add to your URL
+  * can add them at the end of the url separated from your domain and path by a question mark and you can
+  * easily retrieve them on the back-end in the express app by accessing request
+  * + will convert to numbers
+  */
+  const pageSize = +req.query.pagesize;
+  const currentPage = +req.query.page;
+  const postQuery = Post.find();
+  let fetchedPosts;
+  if (pageSize && currentPage){
+    postQuery
+      //skip the results according to page size & current page & limit to page size
+      .skip(pageSize * (currentPage - 1 ))
+      .limit(pageSize);
+  }
   //retrieve all posts, check docs for more
-  Post.find()
+  postQuery
+  /*
+  * if we return it in a then block,
+  * it will basically create a new promise and listen to its result automatically
+  * and we can simply chain then after
+  */
     .then(documents => {
-      res.status(200).json(
-        {
-          message: 'Posts fetched successfully!',
-          posts: documents
-        }
-      )
-    });
+      fetchedPosts = documents;
+      return Post.count();
+    })
+    .then(count => {
+      res.status(200).json({
+        message: "Posts fetched successfully.",
+        posts: fetchedPosts,
+        maxPosts: count
+      })
+    })
 });
 
 router.get("/:id", (req, res, next) => {
